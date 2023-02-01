@@ -21,12 +21,12 @@ class CanvaController {
     var imageMatrix: MutableState<Matrix> = mutableStateOf(Matrix())
 
 
-    var currentUserTouchType = UserTouchType.NONE
+    var currentUserTouchType: MutableState<UserTouchType> = mutableStateOf(UserTouchType.NONE)
 
-    var lastDistance = 0f
+    var lastDistance: MutableState<Float> = mutableStateOf(0f)
 
-    val userTouchMidPoint = PointF()
-    val userLastTouchPointF = PointF(0f, 0f)
+    val userTouchMidPoint: MutableState<PointF> = mutableStateOf(PointF())
+    val userLastTouchPointF: MutableState<PointF> = mutableStateOf(PointF(0f, 0f))
 }
 
 enum class UserTouchType {
