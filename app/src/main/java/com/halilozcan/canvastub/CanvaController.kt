@@ -20,7 +20,6 @@ class CanvaController {
 
     var imageMatrix: MutableState<Matrix> = mutableStateOf(Matrix())
 
-
     var currentUserTouchType: MutableState<UserTouchType> = mutableStateOf(UserTouchType.NONE)
 
     var lastDistance: MutableState<Float> = mutableStateOf(0f)
