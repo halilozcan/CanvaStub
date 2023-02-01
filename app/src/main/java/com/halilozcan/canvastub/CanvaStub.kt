@@ -2,6 +2,7 @@ package com.halilozcan.canvastub
 
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.graphics.RectF
 import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -35,13 +37,13 @@ fun CanvaStub(controller: CanvaController = rememberCanvasController()) {
         .fillMaxSize()
         .onSizeChanged {
             controller.run {
-                imageRectF.set(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat())
+                imageRectF.value.set(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat())
                 controller.viewRectF.set(0f, 0f, it.width.toFloat(), it.height.toFloat())
-                val heightScale = viewRectF.height() / imageRectF.height()
-                val widthScale = viewRectF.width() / imageRectF.width()
+                val heightScale = viewRectF.height() / imageRectF.value.height()
+                val widthScale = viewRectF.width() / imageRectF.value.width()
                 val scale = minOf(heightScale, widthScale)
-                val translationX = (viewRectF.width() - imageRectF.width() * scale) / 2f
-                val translationY = (viewRectF.height() - imageRectF.height() * scale) / 2f
+                val translationX = (viewRectF.width() - imageRectF.value.width() * scale) / 2f
+                val translationY = (viewRectF.height() - imageRectF.value.height() * scale) / 2f
                 imageMatrix.value.setScale(scale, scale)
                 imageMatrix.value.postTranslate(translationX, translationY)
                 canvaInvalidator.value++
@@ -61,6 +63,9 @@ fun CanvaStub(controller: CanvaController = rememberCanvasController()) {
                             userTouchMidPoint.value.set(event.getMidPoint())
                             currentUserTouchType.value = UserTouchType.SCALE
                         }
+
+                        isRotationStarted.value = true
+                        lastRotation.value = event.getRotation()
                     }
 
                     MotionEvent.ACTION_MOVE -> {
@@ -70,8 +75,8 @@ fun CanvaStub(controller: CanvaController = rememberCanvasController()) {
 
                     MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_UP -> {
                         currentUserTouchType.value = UserTouchType.NONE
+                        isRotationStarted.value = false
                     }
-                    else -> Unit
                 }
             }
 
@@ -81,20 +86,22 @@ fun CanvaStub(controller: CanvaController = rememberCanvasController()) {
         drawIntoCanvas {
             controller.run {
                 if (canvaInvalidator.value != 0) {
-                    imageMatrix.value.mapRect(destinationRectF, imageRectF)
-                    it.drawImageRect(
-                        image = bitmap.asImageBitmap(),
-                        srcOffset = IntOffset(imageRectF.left.toInt(), imageRectF.top.toInt()),
-                        dstOffset = IntOffset(
-                            destinationRectF.left.toInt(),
-                            destinationRectF.top.toInt()
-                        ),
-                        dstSize = IntSize(
-                            controller.destinationRectF.width().toInt(),
-                            controller.destinationRectF.height().toInt()
-                        ),
-                        paint = Paint()
-                    )
+                    imageMatrix.value.mapRect(destinationRectF, imageRectF.value)
+                    rotate(imageMatrix.value.getRotation()){
+                        it.drawImageRect(
+                            image = bitmap.asImageBitmap(),
+                            srcOffset = IntOffset(
+                                imageRectF.value.left.toInt(), imageRectF.value.top.toInt()
+                            ),
+                            dstOffset = IntOffset(
+                                destinationRectF.left.toInt(), destinationRectF.top.toInt()
+                            ),
+                            dstSize = IntSize(
+                                controller.destinationRectF.width().toInt(),
+                                controller.destinationRectF.height().toInt()
+                            ), paint = Paint()
+                        )
+                    }
                 }
             }
         }
@@ -116,9 +123,7 @@ fun processUserMoveTouchOperation(event: MotionEvent, controller: CanvaControlle
 fun translateImageWithMotion(event: MotionEvent, controller: CanvaController) {
     val distanceX = event.x - controller.userLastTouchPointF.value.x
     val distanceY = event.y - controller.userLastTouchPointF.value.y
-    controller.imageMatrix.value = controller.imageMatrix.value.apply {
-        postTranslate(distanceX, distanceY)
-    }
+    controller.imageMatrix.value.postTranslate(distanceX, distanceY)
 }
 
 fun scaleImageWithMotion(event: MotionEvent, controller: CanvaController) {
@@ -138,12 +143,20 @@ fun scaleImageWithMotion(event: MotionEvent, controller: CanvaController) {
             currentMatrixScale < MINIMUM_SCALE -> Unit
             else -> {
                 imageMatrix.value.postScale(
-                    scale,
-                    scale,
-                    userTouchMidPoint.value.x,
-                    userTouchMidPoint.value.y
+                    scale, scale, userTouchMidPoint.value.x, userTouchMidPoint.value.y
                 )
             }
+        }
+
+        if (event.pointerCount == 2 && isRotationStarted.value) {
+            val currentRotation = event.getRotation()
+            val newRotation = currentRotation - lastRotation.value
+            val destinationRectF = RectF()
+            imageMatrix.value.mapRect(destinationRectF, imageRectF.value)
+            imageMatrix.value.postRotate(
+                newRotation, destinationRectF.centerX(), destinationRectF.centerY()
+            )
+            lastRotation.value = currentRotation
         }
     }
 }

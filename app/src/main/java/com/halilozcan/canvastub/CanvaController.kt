@@ -14,15 +14,18 @@ fun rememberCanvasController(): CanvaController {
 }
 
 class CanvaController {
-    val imageRectF = RectF()
+    val imageRectF:MutableState<RectF> = mutableStateOf(RectF())
     val viewRectF = RectF()
     val destinationRectF = RectF()
 
     var imageMatrix: MutableState<Matrix> = mutableStateOf(Matrix())
 
+    var isRotationStarted: MutableState<Boolean> = mutableStateOf(false)
+
     var currentUserTouchType: MutableState<UserTouchType> = mutableStateOf(UserTouchType.NONE)
 
     var lastDistance: MutableState<Float> = mutableStateOf(0f)
+    var lastRotation: MutableState<Float> = mutableStateOf(0f)
 
     val userTouchMidPoint: MutableState<PointF> = mutableStateOf(PointF())
     val userLastTouchPointF: MutableState<PointF> = mutableStateOf(PointF(0f, 0f))
