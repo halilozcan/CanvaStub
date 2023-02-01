@@ -1,6 +1,7 @@
 package com.halilozcan.canvastub
 
 import android.graphics.Matrix
+import android.graphics.PointF
 import android.graphics.RectF
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -18,4 +19,18 @@ class CanvaController {
     val destinationRectF = RectF()
 
     var imageMatrix: MutableState<Matrix> = mutableStateOf(Matrix())
+
+
+    var currentUserTouchType = UserTouchType.NONE
+
+    var lastDistance = 0f
+
+    val userTouchMidPoint = PointF()
+    val userLastTouchPointF = PointF(0f, 0f)
+}
+
+enum class UserTouchType {
+    NONE,
+    TRANSLATE,
+    SCALE
 }
